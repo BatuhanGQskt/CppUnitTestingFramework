@@ -3,6 +3,8 @@
 #include<concepts>
 #include<iostream>
 #include <type_traits>
+#include<functional>
+#include "../FunctionWrapper/FunctionWrapper.h"
 
 // Concept definition for checking if T has operator==
 template <typename U>
@@ -29,9 +31,32 @@ concept HasConstIterator = requires { typename U::const_iterator; };
 template <typename T>
 class UnitTest {
 private:
+    static UnitTest<T>* instance;
+    static int instanceCounter;
+
+public: //change to private when solved storing assertion function fully required
+    std::vector<std::function<bool()>> assertions;
+
+private:
+    // Private copy constructor and assignment operator to prevent copying
+    UnitTest(const UnitTest<T>&) = delete;
+    UnitTest<T>& operator=(const UnitTest<T>&) = delete;
+
+protected:
+    UnitTest() {
+
+    }
+    
     void printResult(bool passed, const T& testObject, const T& trueObject, const std::string& functionName = "");
 
 public:
+    void runTests();
+    static UnitTest<T>& getInstance();
+    
+    // Add assertion to the list (wrap it as a lambda)
+    template <typename Func, typename... Args>
+    void addAssertion(Func func,  Args... args);
+
     bool assertEqual(const T& a, const T& b) requires EqualityComparable<T>;
     bool assertEqual(const T& obj, const std::vector<T>& list) requires EqualityComparable<T>;
 
@@ -54,9 +79,52 @@ public:
 
     template <HasConstIterator Container>
     bool assertIn(const T& a, const Container& c, const std::string& functionName = "");
+
     template <HasConstIterator Container>
     bool assertNotIn(const T& a, const Container& c, const std::string& functionName = "");
 };
+
+// Initialize static members
+template <typename T>
+UnitTest<T>* UnitTest<T>::instance = nullptr;
+template <typename T>
+int UnitTest<T>::instanceCounter = 0;
+
+
+template <typename T>
+UnitTest<T>& UnitTest<T>::getInstance() {
+    static UnitTest<T> instance;
+    UnitTest<T>::instanceCounter++;
+
+    std::string classType = typeid(T).name();
+    std::cout << "Current instance of the type " << classType << ": instances are " << UnitTest<T>::instanceCounter << std::endl;
+    return instance;
+}
+
+
+
+// Run all stored assertions
+template <typename T>
+void UnitTest<T>::runTests() {
+    for (const auto& assertion : this->assertions) {
+        assertion();  // Call each stored assertion
+    }
+}
+
+template <typename T>
+template <typename Func, typename... Args>
+void UnitTest<T>::addAssertion(Func func, Args... args) {
+    this->assertions.push_back([=]() -> bool {
+        if constexpr (std::is_member_function_pointer_v<Func>) {
+            return (this->*func)((*args)...);
+        }
+        else {
+            // If func is not a member function pointer, you might call it directly.
+            // (Assuming it takes Args... as parameters.)
+            return func(args...);
+        }
+        });
+}
 
 
 template<typename T>

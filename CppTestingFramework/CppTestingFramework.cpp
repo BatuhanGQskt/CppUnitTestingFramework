@@ -19,8 +19,11 @@
 using namespace std;
 
 
-struct TestClass {
+class TestClass : public UnitTest<TestClass> {
+public:
     int value;
+
+    TestClass(int val) : value(val) {}
 
     // Equality operator
     bool operator==(const TestClass& other) const {
@@ -41,15 +44,72 @@ struct TestClass {
     friend std::ostream& operator<<(std::ostream& os, const TestClass& obj) {
         return os << "TestClass(" << obj.value << ")";
     }
+
+    // Implementing the runTests function
+    void runTests() {
+        UnitTest<TestClass>& unittest = UnitTest<TestClass>::getInstance();
+
+        TestClass myTestClass1 = 10;
+        TestClass myTestClass2 = 10;
+
+
+        std::function<bool(const TestClass*, const TestClass*)> test =
+            [&unittest](const TestClass* a, const TestClass* b) -> bool {
+                return unittest.assertEqual(*a, *b);
+            };
+
+
+        unittest.addAssertion(
+            static_cast<bool (UnitTest<TestClass>::*)(const TestClass&, const TestClass&)>(&UnitTest<TestClass>::assertEqual),
+            &myTestClass1, 
+            &myTestClass2);
+
+        
+        unittest.addAssertion([&unittest](const TestClass* a, const TestClass* b) -> bool {
+            return unittest.assertEqual(*a, *b);
+            }, &myTestClass1, &myTestClass2);
+        
+
+
+        // Run the assertions
+        unittest.runTests();  // Calling the base class method
+    }
+
 };
 
-void TestClassTest() {
-    UnitTest<TestClass> test;
-    TestClass obj1{ 10 };
-    TestClass obj2{ 10 };
-    TestClass obj3{ 5 };
-    TestClass objFalse{ 0 };  // Should behave as `false` in `assertTrue`
-    std::vector<TestClass> testList = { TestClass(1), TestClass(5), TestClass(10) };
+
+struct TestStruct {
+    int value;
+
+    // Equality operator
+    bool operator==(const TestStruct& other) const {
+        return value == other.value;
+    }
+
+    // Inequality operator
+    bool operator!=(const TestStruct& other) const {
+        return value != other.value;
+    }
+
+    // Boolean conversion (e.g., 0 is false, nonzero is true)
+    explicit operator bool() const {
+        return value != 0;
+    }
+
+    // Stream output operator (to allow printing in printResult)
+    friend std::ostream& operator<<(std::ostream& os, const TestStruct& obj) {
+        return os << "TestStruct(" << obj.value << ")";
+    }
+};
+
+void TestStructTest() {
+    UnitTest<TestStruct>& test = UnitTest<TestStruct>::getInstance();
+    
+    TestStruct obj1{ 10 };
+    TestStruct obj2{ 10 };
+    TestStruct obj3{ 5 };
+    TestStruct objFalse{ 0 };  // Should behave as `false` in `assertTrue`
+    std::vector<TestStruct> testList = { TestStruct(1), TestStruct(5), TestStruct(10) };
 
 
     std::cout << "\n=== Running Unit Tests on TestClass ===\n";
@@ -57,7 +117,7 @@ void TestClassTest() {
     // Equality Tests
     test.assertEqual(obj1, obj2);  // Pass
     test.assertEqual(obj1, obj3);  // Fail
-    test.assertEqual(TestClass(5), testList);  //  Pass if TestClass(5) is in `testingList`
+    //test.assertEqual(TestStruct(5), testList);  //  Pass if TestClass(5) is in `testingList`
 
     // Inequality Tests
     test.assertNotEqual(obj1, obj3);  //  Pass
@@ -69,27 +129,27 @@ void TestClassTest() {
     test.assertFalse(obj1); //  Fail
 
 
-    std::shared_ptr<TestClass> testObj = std::make_shared<TestClass>(200);
-    std::shared_ptr<TestClass> testObj2 = testObj;
+    std::shared_ptr<TestStruct> testObj = std::make_shared<TestStruct>(200);
+    std::shared_ptr<TestStruct> testObj2 = testObj;
 
-    UnitTest<TestClass> testClassTest;
-    testClassTest.assertIs(testObj, testObj2);
+    //UnitTest<TestStruct>& testClassTest = UnitTest<TestStruct>::getInstance();
+    test.assertIs(testObj, testObj2);
 
     std::cout << "\n=== Finishing Unit Tests on TestClass ===\n";
 }
 
 void assertIsTest() {
-    UnitTest<TestClass> test;
-    TestClass obj1{ 10 };
-    TestClass obj2{ 10 };
+    UnitTest<TestStruct>& test = UnitTest<TestStruct>::getInstance();
+    TestStruct obj1{ 10 };
+    TestStruct obj2{ 10 };
 
-    TestClass& objRef = obj1;  // objRef refers to obj1
+    TestStruct& objRef = obj1;  // objRef refers to obj1
     test.assertIs(obj1, objRef);  // Should pass (same reference)
     test.assertIs(obj1, obj2);    // Should fail (different objects)
 }
 
 void IntClassTest() {
-    UnitTest<int> testInt;
+    UnitTest<int>& testInt = UnitTest<int>::getInstance();
     int a = 5;
     int b = 7;
     int c = 5;
@@ -99,8 +159,8 @@ void IntClassTest() {
 
     testInt.assertEqual(a, c); // Pass
     testInt.assertEqual(a, b); // Fail
-    testInt.assertEqual(5, testingList); // Pass
-    testInt.assertEqual(10, testingList); // Fail
+    //testInt.assertEqual(5, testingList); // Pass
+    //testInt.assertEqual(10, testingList); // Fail
     testInt.assertNotEqual(3, a);
 
     testInt.assertEqual(4, int(4.3));
@@ -110,7 +170,7 @@ void IntClassTest() {
 }
 
 void noneTest() {
-    UnitTest<int> testNone;
+    UnitTest<int>& testNone = UnitTest<int>::getInstance();
     std::cout << "\n=== Running Unit Tests on int NULL primitive ===\n";
 
     testNone.assertIsNULL(NULL);
@@ -121,8 +181,8 @@ void noneTest() {
 }
 
 void assertInTest() {
-    UnitTest<int> intTest;
-    UnitTest<std::string> stringTest;
+    UnitTest<int>& intTest = UnitTest<int>::getInstance();;
+    UnitTest<std::string>& stringTest = UnitTest<std::string>::getInstance();;
 
     std::cout << "\n===== Testing std::vector<int> =====" << std::endl;
     std::vector<int> vec = { 1, 2, 3, 4, 5 };
@@ -172,15 +232,20 @@ void assertInTest() {
 
 int main()
 {
-    TestClassTest();
-    
-    IntClassTest();
-    
-    assertIsTest();
+    TestClass myTest = 5;
 
-    noneTest();
+    myTest.runTests();
 
-    assertInTest();
+
+    //TestStructTest();
+    
+    //IntClassTest();
+    
+    //assertIsTest();
+
+    //noneTest();
+
+    //assertInTest();
 
 	return 0;
 }
