@@ -77,6 +77,10 @@ public:
 
 };
 
+struct Base {};
+struct Derived : Base {};
+struct Unrelated {};
+
 
 struct TestStruct {
     int value;
@@ -133,7 +137,7 @@ void TestStructTest() {
     std::shared_ptr<TestStruct> testObj2 = testObj;
 
     //UnitTest<TestStruct>& testClassTest = UnitTest<TestStruct>::getInstance();
-    test.assertIs(testObj, testObj2);
+    test.assertIs(*testObj, *testObj2);
 
     std::cout << "\n=== Finishing Unit Tests on TestClass ===\n";
 }
@@ -169,6 +173,7 @@ void IntClassTest() {
 
 }
 
+
 void noneTest() {
     UnitTest<int>& testNone = UnitTest<int>::getInstance();
     std::cout << "\n=== Running Unit Tests on int NULL primitive ===\n";
@@ -177,6 +182,12 @@ void noneTest() {
     testNone.assertIsNotNULL(5);
     testNone.assertIsNullptr(nullptr);
     testNone.assertIsNotNullptr(new int(5));
+
+    TestClass myClass = NULL;
+    UnitTest<TestClass>& testClassTest = UnitTest<TestClass>::getInstance();
+
+    testClassTest.assertIsNULL(myClass);
+
     std::cout << "\n=== Finishing Unit Tests on int NULL primitive ===\n";
 }
 
@@ -230,11 +241,24 @@ void assertInTest() {
     //intTest.assertIn(10, arr, "Array Test");
 }
 
+void testAssertInstance() {
+    Base b;
+    Derived d;
+    Unrelated ur;
+
+    std::cout << "TESTING ASSERTISINSTANCE METHOD" << std::endl;
+
+    UnitTest<Base>& unittestInstance = UnitTest<Base>::getInstance();
+
+    unittestInstance.assertIsNotInstance(b, ur);
+
+}
+
 int main()
 {
     TestClass myTest = 5;
 
-    myTest.runTests();
+    //myTest.runTests();
 
 
     //TestStructTest();
@@ -246,6 +270,8 @@ int main()
     //noneTest();
 
     //assertInTest();
+
+    testAssertInstance();
 
 	return 0;
 }

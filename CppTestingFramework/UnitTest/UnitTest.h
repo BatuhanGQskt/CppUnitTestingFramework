@@ -58,18 +58,14 @@ public:
     void addAssertion(Func func,  Args... args);
 
     bool assertEqual(const T& a, const T& b) requires EqualityComparable<T>;
-    bool assertEqual(const T& obj, const std::vector<T>& list) requires EqualityComparable<T>;
 
     bool assertNotEqual(const T& a, const T& b) requires EqualityUncomparable<T>;
-    bool assertNotEqual(const T& obj, const std::vector<T>& list) requires EqualityUncomparable<T>;
 
     bool assertTrue(const T& a) requires BooleanConvertible<T>;
     bool assertFalse(const T& a) requires BooleanConvertible<T>;
 
     bool assertIs(const T& a, const T& b, const std::string& functionName = "");
-    bool assertIsNot(const T& a, const T& b, const std::string& functionName = ""); 
-    bool assertIs(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b, const std::string& functionName = "");
-    bool assertIsNot(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b, const std::string& functionName = "");
+    bool assertIsNot(const T& a, const T& b, const std::string& functionName = "");
 
     bool assertIsNULL(const T& a, const std::string& functionName = "");
     bool assertIsNotNULL(const T& a, const std::string& functionName = "");
@@ -82,6 +78,11 @@ public:
 
     template <HasConstIterator Container>
     bool assertNotIn(const T& a, const Container& c, const std::string& functionName = "");
+
+    template <typename U>
+    bool assertIsInstance(const T& a, const U& b=NULL, const std::string& functionName="");
+    template <typename U>
+    bool assertIsNotInstance(const T& a, const U& b = NULL, const std::string& functionName = "");
 };
 
 // Initialize static members
@@ -153,35 +154,11 @@ bool UnitTest<T>::assertEqual(const T& testObject, const T& trueObject) requires
     return result;
 }
 
-template <typename T>
-bool UnitTest<T>::assertEqual(const T& testObject, const std::vector<T>& list) requires EqualityComparable<T> {
-    for (const auto& item : list) {
-        if (testObject == item) {
-            printResult(true, testObject, item, "assertEqual");
-            return true;
-        }
-    }
-    printResult(false, testObject, T{});
-    return false;
-}
-
 template<typename T>
 bool UnitTest<T>::assertNotEqual(const T& testObject, const T& trueObject) requires EqualityUncomparable<T> {
     bool result = (testObject != trueObject);
     printResult(result, testObject, trueObject, "assertNotEqual");
     return result;
-}
-
-template <typename T>
-bool UnitTest<T>::assertNotEqual(const T& testObject, const std::vector<T>& list) requires EqualityUncomparable<T> {
-    for (const auto& item : list) {
-        if (testObject == item) {
-            printResult(false, testObject, item, "assertNotEqual");
-            return false;
-        }
-    }
-    printResult(true, testObject, T{});
-    return true;
 }
 
 
@@ -215,34 +192,17 @@ bool UnitTest<T>::assertIsNot(const T& testObject, const T& trueObject, const st
     return result;
 }
 
-// 📌 `assertIs`: Checks if `a` and `b` refer to the same shared object
-template <typename T>
-bool UnitTest<T>::assertIs(const std::shared_ptr<T>& testObject, const std::shared_ptr<T>& trueObject, const std::string& functionName) {
-    bool result = (testObject.get() == trueObject.get());  // Compare stored raw pointers
-    printResult(result, *testObject, *trueObject, "assertIs");
-    return result;
-}
-
-// 📌 `assertIsNot`: Checks if `a` and `b` refer to different shared objects
-template <typename T>
-bool UnitTest<T>::assertIsNot(const std::shared_ptr<T>& testObject, const std::shared_ptr<T>& trueObject, const std::string& functionName) {
-    bool result = (testObject.get() != trueObject.get());  // Compare stored raw pointers
-    printResult(result, *testObject, *trueObject, "assertIsNot");
-    return result;
-}
-
-
 template <typename T>
 bool UnitTest<T>::assertIsNULL(const T& testObject, const std::string& functionName) {
     bool result = (testObject == NULL);
-    printResult(result, testObject, T{}, functionName.empty() ? "assertIsNULL" : functionName);
+    printResult(result, testObject, NULL, functionName.empty() ? "assertIsNULL" : functionName);
     return result;
 }
 
 template <typename T>
 bool UnitTest<T>::assertIsNotNULL(const T& testObject, const std::string& functionName) {
     bool result = not (testObject == NULL);
-    printResult(result, testObject, T{}, functionName.empty() ? "assertIsNotNULL" : functionName);
+    printResult(result, testObject, NULL, functionName.empty() ? "assertIsNotNULL" : functionName);
     return result;
 }
 
@@ -285,4 +245,21 @@ bool UnitTest<T>::assertNotIn(const T& testObject, const Container& c, const std
     }
     printResult(true, T{}, T{}, functionName.empty() ? "assertIn" : functionName);
     return true;
+}
+
+
+template <typename T>
+template <typename U>
+bool UnitTest<T>::assertIsInstance(const T& testObject, const U& b, const std::string& functionName) {
+    bool result = std::is_base_of<T, U>::value;
+    printResult(result, testObject, testObject, functionName.empty() ? "assertIsInstance" : functionName);
+    return result;
+}
+
+template <typename T>
+template <typename U>
+bool UnitTest<T>::assertIsNotInstance(const T& testObject, const U& b, const std::string& functionName) {
+    bool result = not std::is_base_of<T, U>::value;
+    printResult(result, testObject, testObject, functionName.empty() ? "assertIsNotInstance" : functionName);
+    return result;
 }
