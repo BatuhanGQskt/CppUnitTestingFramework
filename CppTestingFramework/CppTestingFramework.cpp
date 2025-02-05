@@ -19,6 +19,61 @@
 using namespace std;
 
 
+class FunctionHolder {
+private:
+    std::vector<std::function<void ()>> funcH;
+public:
+    template <typename Func>
+    void addFuncToHolder(Func&& func) {
+        funcH.emplace_back(std::forward<Func>(func));
+    }
+
+    void execute() {
+        for (const auto& func : funcH)
+        {
+            std::cout << "EXECUTING FUNCTIONS;" << std::endl;
+            func();
+        }
+    }
+
+    template <typename Func, typename... Args>
+    auto lambdafy(Func&& f, Args... args) {
+        // The lambda captures all arguments by copy.
+        return [=]() {
+            // Determine the return type of f(args...)
+            using Ret = std::invoke_result_t<Func, Args...>;
+
+            if constexpr (std::is_void_v<Ret>) {
+                // If the function returns void, just call it.
+                f(args...);
+            }
+            else {
+                // Otherwise, capture the result and print it.
+                Ret res = f(args...);
+                std::cout << "Result of the function is " << res << std::endl;
+            }
+            };
+    }
+};
+
+class OverLoadedClass {
+private:
+    int value;
+public:
+    OverLoadedClass(int v = 0) : value(v) {}
+
+    int add(int a, int b) {
+        std::cout << "executing int add(int, int)" << std::endl;
+        return a + b;
+    }
+
+    int add(int a) {
+        std::cout << "executing int add(int)" << std::endl;
+        return this->value + a;
+    }
+};
+
+
 class TestClass : public UnitTest<TestClass> {
 public:
     int value;
@@ -52,6 +107,9 @@ public:
         TestClass myTestClass1 = 10;
         TestClass myTestClass2 = 10;
 
+        UnitTest<int>& intunittest = UnitTest<int>::getInstance();
+        intunittest.assertNotEqual(4, myTestClass1.value);
+
 
         std::function<bool(const TestClass*, const TestClass*)> test =
             [&unittest](const TestClass* a, const TestClass* b) -> bool {
@@ -69,6 +127,11 @@ public:
             return unittest.assertEqual(*a, *b);
             }, &myTestClass1, &myTestClass2);
         
+        unittest.addAssertion(
+            &UnitTest<TestClass>::assertEqual,
+            new TestClass(3), 
+            new TestClass(3)
+        );
 
 
         // Run the assertions
@@ -254,12 +317,29 @@ void testAssertInstance() {
 
 }
 
+void printHellow() {
+    std::cout << "Hellow" << std::endl;
+}
+
 int main()
 {
+    /*
+    OverLoadedClass oInstance(10);
+
+    FunctionHolder holder;
+
+    holder.addFuncToHolder(holder.lambdafy((oInstance.*pAdd), 2));
+
+
+    holder.execute();
+    */
+    
+
+    
     TestClass myTest = 5;
 
-    //myTest.runTests();
-
+    myTest.runTests();
+    
 
     //TestStructTest();
     
@@ -271,7 +351,7 @@ int main()
 
     //assertInTest();
 
-    testAssertInstance();
+    //testAssertInstance();
 
 	return 0;
 }

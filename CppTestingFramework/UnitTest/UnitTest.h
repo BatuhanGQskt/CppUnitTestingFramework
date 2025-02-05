@@ -55,7 +55,7 @@ public:
     
     // Add assertion to the list (wrap it as a lambda)
     template <typename Func, typename... Args>
-    void addAssertion(Func func,  Args... args);
+    void addAssertion(Func&& func,  Args&&... args);
 
     bool assertEqual(const T& a, const T& b) requires EqualityComparable<T>;
 
@@ -114,7 +114,7 @@ void UnitTest<T>::runTests() {
 
 template <typename T>
 template <typename Func, typename... Args>
-void UnitTest<T>::addAssertion(Func func, Args... args) {
+void UnitTest<T>::addAssertion(Func&& func, Args&&... args) {
     this->assertions.push_back([=]() -> bool {
         if constexpr (std::is_member_function_pointer_v<Func>) {
             return (this->*func)((*args)...);
